@@ -1,0 +1,9 @@
+services:
+  my-app:
+    build: ./my-app
+    ports:
+      - "8080:80"
+  todo-app:
+    build: ./todo-app
+    ports:
+      - "8081:8080"
