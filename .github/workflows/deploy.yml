@@ -1,10 +1,10 @@
 name: Deploy to Server
+
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-
   deploy:
     runs-on: ubuntu-latest
 
@@ -12,36 +12,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Create deployment package
+        run: tar -czf deploy.tar.gz * .github .gitignore
 
-      - name: Build and push my-app image
-        uses: docker/build-push-action@v4
+      - name: Copy package to server
+        uses: appleboy/scp-action@master
         with:
-          context: ./my-app  
-          push: true      
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-final-app:latest
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "deploy.tar.gz"
+          target: "~/deployment" 
 
-      - name: Deploy to server via SSH
+      - name: Deploy on server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SERVER_HOST }}         
-          username: ${{ secrets.SERVER_USER }}     
-          key: ${{ secrets.SSH_PRIVATE_KEY }}      
-
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-
-            cd ~/cmu-nmu-final-work || git clone https://github.com/${{ github.repository }}.git ~/cmu-nmu-final-work
-            cd ~/cmu-nmu-final-work
-
-            git pull
-     
-            docker-compose pull
+            mkdir -p ~/cmu-nmu-final-work
             
-
-            docker-compose up -d
+            cd ~/deployment
+            
+            tar -xzf deploy.tar.gz -C ~/cmu-nmu-final-work
+            
+            cd ~/cmu-nmu-final-work
+            
+            docker compose up --build -d
             
             docker image prune -f
