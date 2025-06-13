@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM docker-0.unsee.tech/node:18-alpine
 WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
